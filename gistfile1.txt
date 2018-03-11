@@ -83,7 +83,29 @@ cp pages/page14.png pages/page_l07.png
 cp pages/page15.png pages/page_l08.png
 convert -rotate 180 pages/page16.png pages/page_l04.png
 
-montage pages/page_l*.png -tile 4x4 -geometry '425x578>+4+3' book.png
+convert -rotate 90  pages/page01.png pages/page_d2_7.png
+convert -rotate 270 pages/page02.png pages/page_d1_8.png
+convert -rotate 270 pages/page03.png pages/page_d1_2.png
+convert -rotate 90  pages/page04.png pages/page_d2_1.png
+convert -rotate 270 pages/page05.png pages/page_d2_2.png
+convert -rotate 90  pages/page06.png pages/page_d1_1.png
+convert -rotate 90  pages/page07.png pages/page_d1_7.png
+convert -rotate 270 pages/page08.png pages/page_d2_8.png
+convert -rotate 270 pages/page09.png pages/page_d2_6.png
+convert -rotate 90  pages/page10.png pages/page_d1_5.png
+convert -rotate 90  pages/page11.png pages/page_d1_3.png
+convert -rotate 270 pages/page12.png pages/page_d2_4.png
+convert -rotate 90  pages/page13.png pages/page_d2_3.png
+convert -rotate 270 pages/page14.png pages/page_d1_4.png
+convert -rotate 270 pages/page15.png pages/page_d1_6.png
+convert -rotate 90  pages/page16.png pages/page_d2_5.png
+
+montage pages/page_l*.png -tile 4x4 -geometry '425x578>+4+3' -set label '' book.png
+
+montage pages/page_d1*.png -tile 2x4 -geometry '578x425>+4+3' -set label '' book_d1.png
+montage pages/page_d2*.png -tile 2x4 -geometry '578x425>+4+3' -set label '' book_d2.png
+
+magick book_d*.png book_d.pdf
 
 "${gpg2}" --export 0 | "${base64}" -w0 > temp
 rm page_*
