@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+
+gpg2 --gen-key --batch --allow-freeform-uid << _EOF_ 2>/dev/null
+%no-ask-passphrase
+%no-protection
+Key-Type: rsa
+Key-Length: 2048
+Key-Usage: cert
+Name-Real: 0
+Expire-Date: 0
+Preferences: SHA512 SHA384 SHA256 SHA224 AES256 AES192 AES CAST5 ZLIB BZIP2 ZIP Uncompressed
+_EOF_
+
+gpg2 --edit-key --batch --command-fd 0 --passphrase '' 0 << _EOF_
+%no-ask-passphrase
+%no-protection
+addkey
+rsa/e
+2048
+0
+save
+_EOF_
+
+gpg2 --expert --edit-key --batch --command-fd 0 --passphrase '' 0 << _EOF_
+%no-ask-passphrase
+%no-protection
+addkey
+rsa/*
+=a
+2048
+0
+save
+_EOF_
+
+mkdir -p pages pub
+convert -background white -font FreeMono -pointsize 18 label:"$(gpg --keyid-format 0xLONG --list-keys --fingerprint 0)" pages/page01.png
+convert -background white -font FreeMono -pointsize 18 label:"$(gpg --keyid-format 0xLONG --list-keys --fingerprint 0)" pub/page01.png
+
+gpg2 --export-secret-key 0 | paperkey --output-type raw | base64 -w0 > temp
+split temp -n 14 page_
+apg -M SNCL -m 32 -x 32|head -n1 > page_zz
+pagen=1
+for x in page_* ; do
+  pagen=$((pagen + 1))
+  qrencode -s 5 -l H -8 -o temp.png < $x
+  convert temp.png -background white -font FreeMono -pointsize 18 label:"$(cat ${x}|fold -w33) $(printf '\n\n%-31s%02d\n' '' ${pagen})" -gravity center -append pages/page$(printf '%02d' ${pagen}).png
+done
+
+convert -rotate 180 pages/page01.png pages/page_l03.png
+convert -rotate 180 pages/page02.png pages/page_l02.png
+convert -rotate 180 pages/page03.png pages/page_l01.png
+cp pages/page04.png pages/page_l05.png
+cp pages/page05.png pages/page_l06.png
+convert -rotate 180 pages/page06.png pages/page_l10.png
+convert -rotate 180 pages/page07.png pages/page_l09.png
+cp pages/page08.png pages/page_l13.png
+cp pages/page09.png pages/page_l14.png
+cp pages/page10.png pages/page_l15.png
+cp pages/page11.png pages/page_l16.png
+convert -rotate 180 pages/page12.png pages/page_l12.png
+convert -rotate 180 pages/page13.png pages/page_l11.png
+cp pages/page14.png pages/page_l07.png
+cp pages/page15.png pages/page_l08.png
+convert -rotate 180 pages/page16.png pages/page_l04.png
+
+montage pages/page_l*.png -tile 4x4 -geometry '425x578>+4+3' book.png
+
+gpg2 --export 0 | base64 -w0 > temp
+rm page_*
+split temp -n 14 page_
+apg -M SNCL -m 32 -x 32|head -n1 > page_zz
+pagen=1
+for x in page_* ; do
+  pagen=$((pagen + 1))
+  qrencode -s 5 -l H -8 -o temp.png < $x
+  convert temp.png -background white -font FreeMono -pointsize 18 label:"$(cat ${x}|fold -w33) $(printf '\n\n%-28s%02d\n' '' ${pagen})" -gravity center -append pub/page$(printf '%02d' ${pagen}).png
+done
+
+convert -rotate 180 pub/page01.png pub/page_l03.png
+convert -rotate 180 pub/page02.png pub/page_l02.png
+convert -rotate 180 pub/page03.png pub/page_l01.png
+cp pub/page04.png pub/page_l05.png
+cp pub/page05.png pub/page_l06.png
+convert -rotate 180 pub/page06.png pub/page_l10.png
+convert -rotate 180 pub/page07.png pub/page_l09.png
+cp pub/page08.png pub/page_l13.png
+cp pub/page09.png pub/page_l14.png
+cp pub/page10.png pub/page_l15.png
+cp pub/page11.png pub/page_l16.png
+convert -rotate 180 pub/page12.png pub/page_l12.png
+convert -rotate 180 pub/page13.png pub/page_l11.png
+cp pub/page14.png pub/page_l07.png
+cp pub/page15.png pub/page_l08.png
+convert -rotate 180 pub/page16.png pub/page_l04.png
+
+montage pub/page_l*.png -tile 4x4 -geometry '425x578>+4+3' pub.png
