@@ -1,6 +1,26 @@
 #!/usr/bin/env bash
 
-gpg2 --gen-key --batch --allow-freeform-uid << _EOF_ 2>/dev/null
+set -x
+
+gpg2=""
+base64="base64"
+split="split"
+
+type gpg2 && gpg2="gpg2"
+macgpg2="/usr/local/MacGPG2/bin/gpg2"
+[ -f "${macgpg2}" ] && gpg2="${macgpg2}"
+
+type gbase64 && base64="gbase64"
+type gsplit && split="gsplit"
+
+type convert || { echo "install ImageMagick" 1>&2 ; exit 1; }
+type paperkey || { echo "install paperkey" 1>&2 ; exit 1; }
+type apg && { mkpw () { apg -M SNCL -m 32 -x 32|head -n1; } ; }
+type pwgen && { mkpw () { pwgen -s1 32 1; } ; }
+
+type mkpw || { echo "Install apg or pwgen" 1>&2 ; exit 1; }
+
+"${gpg2}" --gen-key --batch --allow-freeform-uid << _EOF_ 2>/dev/null
 %no-ask-passphrase
 %no-protection
 Key-Type: rsa
@@ -11,7 +31,7 @@ Expire-Date: 0
 Preferences: SHA512 SHA384 SHA256 SHA224 AES256 AES192 AES CAST5 ZLIB BZIP2 ZIP Uncompressed
 _EOF_
 
-gpg2 --edit-key --batch --command-fd 0 --passphrase '' 0 << _EOF_
+"${gpg2}" --edit-key --batch --command-fd 0 --passphrase '' 0 << _EOF_
 %no-ask-passphrase
 %no-protection
 addkey
@@ -21,7 +41,7 @@ rsa/e
 save
 _EOF_
 
-gpg2 --expert --edit-key --batch --command-fd 0 --passphrase '' 0 << _EOF_
+"${gpg2}" --expert --edit-key --batch --command-fd 0 --passphrase '' 0 << _EOF_
 %no-ask-passphrase
 %no-protection
 addkey
@@ -36,9 +56,9 @@ mkdir -p pages pub
 convert -background white -font FreeMono -pointsize 18 label:"$(gpg --keyid-format 0xLONG --list-keys --fingerprint 0)" pages/page01.png
 convert -background white -font FreeMono -pointsize 18 label:"$(gpg --keyid-format 0xLONG --list-keys --fingerprint 0)" pub/page01.png
 
-gpg2 --export-secret-key 0 | paperkey --output-type raw | base64 -w0 > temp
-split temp -n 14 page_
-apg -M SNCL -m 32 -x 32|head -n1 > page_zz
+"${gpg2}" --export-secret-key 0 | paperkey --output-type raw | "${base64}" -w0 > temp
+"${split}" temp -n 14 page_
+pwgen > page_zz
 pagen=1
 for x in page_* ; do
   pagen=$((pagen + 1))
@@ -65,10 +85,10 @@ convert -rotate 180 pages/page16.png pages/page_l04.png
 
 montage pages/page_l*.png -tile 4x4 -geometry '425x578>+4+3' book.png
 
-gpg2 --export 0 | base64 -w0 > temp
+"${gpg2}" --export 0 | "${base64}" -w0 > temp
 rm page_*
-split temp -n 14 page_
-apg -M SNCL -m 32 -x 32|head -n1 > page_zz
+"${split}" temp -n 14 page_
+mkpw > page_zz
 pagen=1
 for x in page_* ; do
   pagen=$((pagen + 1))
