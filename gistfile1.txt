@@ -86,7 +86,7 @@ qrencode_pages () {
   for file in page_* ; do
     qrpg=$(mktemp)
     pagen=$((pagen + 1))
-    qrencode -s 5 -l H -8 -o "${qrpg}" < "${file}"
+    printf '%02d:%s' "${pagen}" "$(<${file})" | qrencode -s 5 -l H -8 -o "${qrpg}"
     # shellcheck disable=SC2086
     convert "${qrpg}" -background white ${convert_fntopts} \
      label:"$(fold -w${txtwidth} < "${file}") $(printf '\n\n%-'${spacect}'s%02d\n' '' ${pagen})" \
