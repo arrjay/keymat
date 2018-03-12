@@ -54,31 +54,10 @@ export GNUPGHOME="${ttmpdir}/.gnupg"
 %no-protection
 Key-Type: rsa
 Key-Length: 2048
-Key-Usage: cert
+Key-Usage: encrypt
 Name-Real: 0
 Expire-Date: 0
 Preferences: SHA512 SHA384 SHA256 SHA224 AES256 AES192 AES CAST5 ZLIB BZIP2 ZIP Uncompressed
-_EOF_
-
-"${gpg2}" --edit-key --batch --command-fd 0 --passphrase '' 0 << _EOF_
-%no-ask-passphrase
-%no-protection
-addkey
-rsa/e
-2048
-0
-save
-_EOF_
-
-"${gpg2}" --expert --edit-key --batch --command-fd 0 --passphrase '' 0 << _EOF_
-%no-ask-passphrase
-%no-protection
-addkey
-rsa/*
-=a
-2048
-0
-save
 _EOF_
 
 qrencode_pages () {
