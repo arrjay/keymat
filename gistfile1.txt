@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 
-set -x
+# settings
+convert_fntopts="-font FreeMono -pointsize 18"
+txtwidth="33"
 
+# prereqs
 gpg2=""
 base64="base64"
 split="split"
@@ -19,6 +22,26 @@ type apg && { mkpw () { apg -M SNCL -m 32 -x 32|head -n1; } ; }
 type pwgen && { mkpw () { pwgen -s1 32 1; } ; }
 
 type mkpw || { echo "Install apg or pwgen" 1>&2 ; exit 1; }
+
+ttmpdir=$(mktemp -d)
+export TMPDIR="${ttmpdir}"
+OUTPUT="$(pwd)"
+export OUTPUT
+
+clean_tmpdir () {
+  cd / || exit 250
+  if [ ! -z "${ttmpdir}" ] ; then
+    find "${ttmpdir}" -type f -exec rm -P {} \;
+    rm -rf "${ttmpdir}"
+  fi
+}
+
+trap clean_tmpdir EXIT SIGINT SIGTERM
+
+cd "${ttmpdir}" || exit 250
+
+mkdir .gnupg
+export GNUPGHOME="${ttmpdir}/.gnupg"
 
 "${gpg2}" --gen-key --batch --allow-freeform-uid << _EOF_ 2>/dev/null
 %no-ask-passphrase
@@ -52,109 +75,112 @@ rsa/*
 save
 _EOF_
 
-mkdir -p pages pub
-convert -background white -font FreeMono -pointsize 18 label:"$(gpg --keyid-format 0xLONG --list-keys --fingerprint 0)" pages/page01.png
-convert -background white -font FreeMono -pointsize 18 label:"$(gpg --keyid-format 0xLONG --list-keys --fingerprint 0)" pub/page01.png
+qrencode_pages () {
+  local inputfile pagen qrpg file spacect
+  inputfile="${1}"
+  pagen=1
+  spacect=$((txtwidth - 2))
 
-"${gpg2}" --export-secret-key 0 | paperkey --output-type raw | "${base64}" -w0 > temp
-"${split}" temp -n 14 page_
-mkpw > page_zz
-pagen=1
-for x in page_* ; do
-  pagen=$((pagen + 1))
-  qrencode -s 5 -l H -8 -o temp.png < $x
-  convert temp.png -background white -font FreeMono -pointsize 18 label:"$(cat ${x}|fold -w33) $(printf '\n\n%-31s%02d\n' '' ${pagen})" -gravity center -append pages/page$(printf '%02d' ${pagen}).png
-done
+  "${split}" "${inputfile}" -n 14 page_ < /dev/null
+  cat - > page_zz
+  for file in page_* ; do
+    qrpg=$(mktemp)
+    pagen=$((pagen + 1))
+    qrencode -s 5 -l H -8 -o "${qrpg}" < "${file}"
+    # shellcheck disable=SC2086
+    convert "${qrpg}" -background white ${convert_fntopts} \
+     label:"$(fold -w${txtwidth} < "${file}") $(printf '\n\n%-'${spacect}'s%02d\n' '' ${pagen})" \
+     -gravity center -append "leaf/$(printf '%02d' "${pagen}").png"
+    rm -P "${file}"
+  done
 
-convert -rotate 180 pages/page01.png pages/page_l03.png
-convert -rotate 180 pages/page02.png pages/page_l02.png
-convert -rotate 180 pages/page03.png pages/page_l01.png
-cp pages/page04.png pages/page_l05.png
-cp pages/page05.png pages/page_l06.png
-convert -rotate 180 pages/page06.png pages/page_l10.png
-convert -rotate 180 pages/page07.png pages/page_l09.png
-cp pages/page08.png pages/page_l13.png
-cp pages/page09.png pages/page_l14.png
-cp pages/page10.png pages/page_l15.png
-cp pages/page11.png pages/page_l16.png
-convert -rotate 180 pages/page12.png pages/page_l12.png
-convert -rotate 180 pages/page13.png pages/page_l11.png
-cp pages/page14.png pages/page_l07.png
-cp pages/page15.png pages/page_l08.png
-convert -rotate 180 pages/page16.png pages/page_l04.png
+  rm -P "${inputfile}"
+}
 
-convert -rotate 90  pages/page01.png pages/page_d2_7.png
-convert -rotate 270 pages/page02.png pages/page_d1_8.png
-convert -rotate 270 pages/page03.png pages/page_d1_2.png
-convert -rotate 90  pages/page04.png pages/page_d2_1.png
-convert -rotate 270 pages/page05.png pages/page_d2_2.png
-convert -rotate 90  pages/page06.png pages/page_d1_1.png
-convert -rotate 90  pages/page07.png pages/page_d1_7.png
-convert -rotate 270 pages/page08.png pages/page_d2_8.png
-convert -rotate 270 pages/page09.png pages/page_d2_6.png
-convert -rotate 90  pages/page10.png pages/page_d1_5.png
-convert -rotate 90  pages/page11.png pages/page_d1_3.png
-convert -rotate 270 pages/page12.png pages/page_d2_4.png
-convert -rotate 90  pages/page13.png pages/page_d2_3.png
-convert -rotate 270 pages/page14.png pages/page_d1_4.png
-convert -rotate 270 pages/page15.png pages/page_d1_6.png
-convert -rotate 90  pages/page16.png pages/page_d2_5.png
+rot () {
+  convert -rotate "${@}"
+}
 
-montage pages/page_l*.png -tile 4x4 -geometry '425x578>+4+3' -set label '' book.png
+layout_impositions () {
+  mkdir ss ds
+  rot 180 leaf/01.png ss/p1s1f03.png
+  rot 180 leaf/02.png ss/p1s1f02.png
+  rot 180 leaf/03.png ss/p1s1f01.png
+  cp      leaf/04.png ss/p1s1f05.png
+  cp      leaf/05.png ss/p1s1f06.png
+  rot 180 leaf/06.png ss/p1s1f10.png
+  rot 180 leaf/07.png ss/p1s1f09.png
+  cp      leaf/08.png ss/p1s1f13.png
+  cp      leaf/09.png ss/p1s1f14.png
+  cp      leaf/10.png ss/p1s1f15.png
+  cp      leaf/11.png ss/p1s1f16.png
+  rot 180 leaf/12.png ss/p1s1f12.png
+  rot 180 leaf/13.png ss/p1s1f11.png
+  cp      leaf/14.png ss/p1s1f07.png
+  cp      leaf/15.png ss/p1s1f08.png
+  rot 180 leaf/16.png ss/p1s1f04.png
 
-montage pages/page_d1*.png -tile 2x4 -geometry '578x425>+4+3' -set label '' book_d1.png
-montage pages/page_d2*.png -tile 2x4 -geometry '578x425>+4+3' -set label '' book_d2.png
+  rot  90 leaf/01.png ds/p1s2f7.png
+  rot 270 leaf/02.png ds/p1s1f8.png
+  rot 270 leaf/03.png ds/p1s1f2.png
+  rot  90 leaf/04.png ds/p1s2f1.png
+  rot 270 leaf/05.png ds/p1s2f2.png
+  rot  90 leaf/06.png ds/p1s1f1.png
+  rot  90 leaf/07.png ds/p1s1f7.png
+  rot 270 leaf/08.png ds/p1s2f8.png
+  rot 270 leaf/09.png ds/p1s2f6.png
+  rot  90 leaf/10.png ds/p1s1f5.png
+  rot  90 leaf/11.png ds/p1s1f3.png
+  rot 270 leaf/12.png ds/p1s2f4.png
+  rot  90 leaf/13.png ds/p1s2f3.png
+  rot 270 leaf/14.png ds/p1s1f4.png
+  rot 270 leaf/15.png ds/p1s1f6.png
+  rot  90 leaf/16.png ds/p1s2f5.png
 
-magick book_d*.png book_d.pdf
+  montage ss/p1s1f*.png -tile 4x4 -geometry '425x578>+4+3' -set label '' ss.pdf
 
-"${gpg2}" --export 0 | "${base64}" -w0 > temp
-rm page_*
-"${split}" temp -n 14 page_
-mkpw > page_zz
-pagen=1
-for x in page_* ; do
-  pagen=$((pagen + 1))
-  qrencode -s 5 -l H -8 -o temp.png < $x
-  convert temp.png -background white -font FreeMono -pointsize 18 label:"$(cat ${x}|fold -w33) $(printf '\n\n%-28s%02d\n' '' ${pagen})" -gravity center -append pub/page$(printf '%02d' ${pagen}).png
-done
+  montage ds/p1s1f*.png -tile 2x4 -geometry '578x452>+4+3' -set label '' ds/p1s1.png
+  montage ds/p1s2f*.png -tile 2x4 -geometry '578x452>+4+3' -set label '' ds/p1s2.png
 
-convert -rotate 180 pub/page01.png pub/page_l03.png
-convert -rotate 180 pub/page02.png pub/page_l02.png
-convert -rotate 180 pub/page03.png pub/page_l01.png
-cp pub/page04.png pub/page_l05.png
-cp pub/page05.png pub/page_l06.png
-convert -rotate 180 pub/page06.png pub/page_l10.png
-convert -rotate 180 pub/page07.png pub/page_l09.png
-cp pub/page08.png pub/page_l13.png
-cp pub/page09.png pub/page_l14.png
-cp pub/page10.png pub/page_l15.png
-cp pub/page11.png pub/page_l16.png
-convert -rotate 180 pub/page12.png pub/page_l12.png
-convert -rotate 180 pub/page13.png pub/page_l11.png
-cp pub/page14.png pub/page_l07.png
-cp pub/page15.png pub/page_l08.png
-convert -rotate 180 pub/page16.png pub/page_l04.png
+  magick ds/p1s?.png ds.pdf
+}
 
-convert -rotate 90  pub/page01.png pub/page_d2_7.png
-convert -rotate 270 pub/page02.png pub/page_d1_8.png
-convert -rotate 270 pub/page03.png pub/page_d1_2.png
-convert -rotate 90  pub/page04.png pub/page_d2_1.png
-convert -rotate 270 pub/page05.png pub/page_d2_2.png
-convert -rotate 90  pub/page06.png pub/page_d1_1.png
-convert -rotate 90  pub/page07.png pub/page_d1_7.png
-convert -rotate 270 pub/page08.png pub/page_d2_8.png
-convert -rotate 270 pub/page09.png pub/page_d2_6.png
-convert -rotate 90  pub/page10.png pub/page_d1_5.png
-convert -rotate 90  pub/page11.png pub/page_d1_3.png
-convert -rotate 270 pub/page12.png pub/page_d2_4.png
-convert -rotate 90  pub/page13.png pub/page_d2_3.png
-convert -rotate 270 pub/page14.png pub/page_d1_4.png
-convert -rotate 270 pub/page15.png pub/page_d1_6.png
-convert -rotate 90  pub/page16.png pub/page_d2_5.png
+makebook () {
+  local t2
 
-montage pub/page_l*.png -tile 4x4 -geometry '425x578>+4+3' pub.png
+  t2=$(mktemp -d)
 
-montage pub/page_d1*.png -tile 2x4 -geometry '578x425>+4+3' -set label '' pub_d1.png
-montage pub/page_d2*.png -tile 2x4 -geometry '578x425>+4+3' -set label '' pub_d2.png
+  pushd "${t2}" || exit 250
 
-magick pub_d*.png pub_d.pdf
+  "${gpg2}" --export-secret-key 0 | paperkey --output-type raw | "${base64}" -w0 > "sekrit"
+  "${gpg2}" --export 0                                         | "${base64}" -w0 > "public"
+
+  mkdir -p "sec/leaf" "pub/leaf"
+
+  # shellcheck disable=SC2086
+  convert -background white ${convert_fntopts} label:"$(gpg --keyid-format 0xLONG --list-keys --fingerprint 0)" "page01.png"
+  cp "page01.png" "sec/leaf/01.png"
+  cp "page01.png" "pub/leaf/01.png"
+
+  pushd sec || exit 250
+  "${gpg2}" --export-secret-key 0 | paperkey --output-type raw | "${base64}" -w0 > "data"
+  mkpw | qrencode_pages "data"
+
+  layout_impositions
+
+  cp ss.pdf "${OUTPUT}/private-ss.pdf"
+  cp ds.pdf "${OUTPUT}/private-ds.pdf"
+
+  popd || exit 250
+
+  pushd pub || exit 250
+  "${gpg2}" --export 0                                         | "${base64}" -w0 > "data"
+  echo "PUBLIC KEY" | qrencode_pages "data"
+
+  layout_impositions
+
+  cp ss.pdf "${OUTPUT}/public-ss.pdf"
+  cp ds.pdf "${OUTPUT}/public-sd.pdf"
+}
+
+makebook
