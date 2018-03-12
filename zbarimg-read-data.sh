@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # number of parts to scan for
-num=14
+num=15
 
 declare -A parts
 
-while [ "${#parts[@]}" -le "${num}" ] ; do
+while [ "${#parts[@]}" -ne "${num}" ] ; do
   for arg in "${@}" ; do
     lines=$(zbarimg "${arg}" | awk -F: 'BEGIN { OFS=":" } ; $1 == "QR-Code" { print $2,$3 }')
     while read -r new ; do
@@ -24,4 +24,4 @@ for ((ct=1 ; ct <= num ; ct++)) ; do
   b64str="${b64str}${parts[$(printf '%02d' "${ct}")]}"
 done
 
-echo "${b64str}" | fold -w 76
+echo "${b64str}" | fold -w 72

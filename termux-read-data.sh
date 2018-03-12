@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # number of parts to scan for
-num=14
+num=15
 
 declare -A parts
 
@@ -20,4 +20,4 @@ for ((ct=1 ; ct <= num ; ct++)) ; do
   b64str="${b64str}${parts[$(printf '%02d' "${ct}")]}"
 done
 
-echo "${b64str}" | fold -w 76
+echo "${b64str}" | fold -w 72
