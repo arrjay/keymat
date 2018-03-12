@@ -135,4 +135,26 @@ cp pub/page14.png pub/page_l07.png
 cp pub/page15.png pub/page_l08.png
 convert -rotate 180 pub/page16.png pub/page_l04.png
 
+convert -rotate 90  pub/page01.png pub/page_d2_7.png
+convert -rotate 270 pub/page02.png pub/page_d1_8.png
+convert -rotate 270 pub/page03.png pub/page_d1_2.png
+convert -rotate 90  pub/page04.png pub/page_d2_1.png
+convert -rotate 270 pub/page05.png pub/page_d2_2.png
+convert -rotate 90  pub/page06.png pub/page_d1_1.png
+convert -rotate 90  pub/page07.png pub/page_d1_7.png
+convert -rotate 270 pub/page08.png pub/page_d2_8.png
+convert -rotate 270 pub/page09.png pub/page_d2_6.png
+convert -rotate 90  pub/page10.png pub/page_d1_5.png
+convert -rotate 90  pub/page11.png pub/page_d1_3.png
+convert -rotate 270 pub/page12.png pub/page_d2_4.png
+convert -rotate 90  pub/page13.png pub/page_d2_3.png
+convert -rotate 270 pub/page14.png pub/page_d1_4.png
+convert -rotate 270 pub/page15.png pub/page_d1_6.png
+convert -rotate 90  pub/page16.png pub/page_d2_5.png
+
 montage pub/page_l*.png -tile 4x4 -geometry '425x578>+4+3' pub.png
+
+montage pub/page_d1*.png -tile 2x4 -geometry '578x425>+4+3' -set label '' pub_d1.png
+montage pub/page_d2*.png -tile 2x4 -geometry '578x425>+4+3' -set label '' pub_d2.png
+
+magick pub_d*.png pub_d.pdf
