@@ -164,7 +164,7 @@ makebook () {
 
   pushd sec || exit 250
   "${gpg2}" --export-secret-key 0 | paperkey --output-type raw | "${base64}" -w0 > "data"
-  mkpw | qrencode_pages "data"
+  mkpw                                                         | qrencode_pages "data"
 
   layout_impositions
 
@@ -175,7 +175,7 @@ makebook () {
 
   pushd pub || exit 250
   "${gpg2}" --export 0                                         | "${base64}" -w0 > "data"
-  echo "PUBLIC KEY" | qrencode_pages "data"
+  echo "https://github.com/arrjay/keymat"                      | qrencode_pages "data"
 
   layout_impositions
 
