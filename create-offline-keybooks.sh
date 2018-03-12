@@ -9,25 +9,31 @@ gpg2=""
 base64="base64"
 split="split"
 
-type gpg2 && gpg2="gpg2"
+qtype () { type "${@}" > /dev/null 2>&1 ; }
+
+qtype gpg2 && gpg2="gpg2"
 macgpg2="/usr/local/MacGPG2/bin/gpg2"
 [ -f "${macgpg2}" ] && gpg2="${macgpg2}"
 
-type gbase64 && base64="gbase64"
-type gsplit && split="gsplit"
+qtype gbase64 && base64="gbase64"
+qtype gsplit  && split="gsplit"
 
-type convert || { echo "install ImageMagick" 1>&2 ; exit 1; }
-type paperkey || { echo "install paperkey" 1>&2 ; exit 1; }
-type apg && { mkpw () { apg -M SNCL -m 32 -x 32|head -n1; } ; }
-type pwgen && { mkpw () { pwgen -s1 32 1; } ; }
+qtype convert  || { echo "install ImageMagick" 1>&2 ; exit 1; }
+qtype paperkey || { echo "install paperkey" 1>&2 ; exit 1; }
 
-type mkpw || { echo "Install apg or pwgen" 1>&2 ; exit 1; }
+# we can do apg or pwgen, but I need _one_
+qtype apg   && { mkpw () { apg -M SNCL -m 32 -x 32|head -n1; } ; }
+qtype pwgen && { mkpw () { pwgen -s1 32 1; } ; }
 
+qtype mkpw || { echo "Install apg or pwgen" 1>&2 ; exit 1; }
+
+# directory handling
 ttmpdir=$(mktemp -d)
 export TMPDIR="${ttmpdir}"
 OUTPUT="$(pwd)"
 export OUTPUT
 
+# clean out all files zeroizing first, then rm dirs
 clean_tmpdir () {
   cd / || exit 250
   if [ ! -z "${ttmpdir}" ] ; then
@@ -35,9 +41,9 @@ clean_tmpdir () {
     rm -rf "${ttmpdir}"
   fi
 }
-
 trap clean_tmpdir EXIT SIGINT SIGTERM
 
+# okay let's go drive gpg
 cd "${ttmpdir}" || exit 250
 
 mkdir .gnupg
@@ -86,7 +92,7 @@ qrencode_pages () {
   for file in page_* ; do
     qrpg=$(mktemp)
     pagen=$((pagen + 1))
-    printf '%02d:%s' "${pagen}" "$(<${file})" | qrencode -s 5 -l H -8 -o "${qrpg}"
+    printf '%02d:%s' "${pagen}" "$(<"${file}")" | qrencode -s 5 -l H -8 -o "${qrpg}"
     # shellcheck disable=SC2086
     convert "${qrpg}" -background white ${convert_fntopts} \
      label:"$(fold -w${txtwidth} < "${file}") $(printf '\n\n%-'${spacect}'s%02d\n' '' ${pagen})" \
@@ -150,7 +156,7 @@ makebook () {
 
   t2=$(mktemp -d)
 
-  pushd "${t2}" || exit 250
+  pushd "${t2}" >/dev/null || exit 250
 
   "${gpg2}" --export-secret-key 0 | paperkey --output-type raw | "${base64}" -w0 > "sekrit"
   "${gpg2}" --export 0                                         | "${base64}" -w0 > "public"
@@ -162,7 +168,7 @@ makebook () {
   cp "page01.png" "sec/leaf/01.png"
   cp "page01.png" "pub/leaf/01.png"
 
-  pushd sec || exit 250
+  pushd sec >/dev/null || exit 250
   "${gpg2}" --export-secret-key 0 | paperkey --output-type raw | "${base64}" -w0 > "data"
   mkpw                                                         | qrencode_pages "data"
 
@@ -171,16 +177,16 @@ makebook () {
   cp ss.pdf "${OUTPUT}/private-ss.pdf"
   cp ds.pdf "${OUTPUT}/private-ds.pdf"
 
-  popd || exit 250
+  popd > /dev/null || exit 250
 
-  pushd pub || exit 250
+  pushd pub > /dev/null || exit 250
   "${gpg2}" --export 0                                         | "${base64}" -w0 > "data"
   echo "https://github.com/arrjay/keymat"                      | qrencode_pages "data"
 
   layout_impositions
 
   cp ss.pdf "${OUTPUT}/public-ss.pdf"
-  cp ds.pdf "${OUTPUT}/public-sd.pdf"
+  cp ds.pdf "${OUTPUT}/public-ds.pdf"
 }
 
 makebook
