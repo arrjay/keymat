@@ -58,7 +58,7 @@ convert -background white -font FreeMono -pointsize 18 label:"$(gpg --keyid-form
 
 "${gpg2}" --export-secret-key 0 | paperkey --output-type raw | "${base64}" -w0 > temp
 "${split}" temp -n 14 page_
-pwgen > page_zz
+mkpw > page_zz
 pagen=1
 for x in page_* ; do
   pagen=$((pagen + 1))
