@@ -89,7 +89,7 @@ qrencode_pages () {
 }
 
 rot () {
-  convert -rotate "${@}"
+  convert -set label '' -label '' -rotate "${@}"
 }
 
 layout_impositions () {
@@ -128,10 +128,10 @@ layout_impositions () {
   rot 270 leaf/15.png ds/p1s1f6.png
   rot  90 leaf/16.png ds/p1s2f5.png
 
-  montage ss/p1s1f*.png -tile 4x4 -geometry '425x578>+4+3' -set label '' ss.pdf
+  montage ss/p1s1f*.png -tile 4x4 -geometry '425x578>+4+3' -set label '' -label '' ss.pdf
 
-  montage ds/p1s1f*.png -tile 2x4 -geometry '578x452>+4+3' -set label '' ds/p1s1.png
-  montage ds/p1s2f*.png -tile 2x4 -geometry '578x452>+4+3' -set label '' ds/p1s2.png
+  montage ds/p1s1f*.png -tile 2x4 -geometry '578x452>+4+3' -set label '' -label '' ds/p1s1.png
+  montage ds/p1s2f*.png -tile 2x4 -geometry '578x452>+4+3' -set label '' -label '' ds/p1s2.png
 
   convert ds/p1s?.png -quality 100 ds.pdf
 }
