@@ -133,7 +133,7 @@ layout_impositions () {
   montage ds/p1s1f*.png -tile 2x4 -geometry '578x452>+4+3' -set label '' ds/p1s1.png
   montage ds/p1s2f*.png -tile 2x4 -geometry '578x452>+4+3' -set label '' ds/p1s2.png
 
-  magick ds/p1s?.png ds.pdf
+  convert ds/p1s?.png -quality 100 ds.pdf
 }
 
 makebook () {
