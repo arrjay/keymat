@@ -27,17 +27,23 @@ qtype pwgen && { mkpw () { pwgen -s1 32 1; } ; }
 
 qtype mkpw || { echo "Install apg or pwgen" 1>&2 ; exit 1; }
 
+qtype qrencode || { echo "Install qrencode" 1>&2 ; exit 1; }
+
 # directory handling
 ttmpdir=$(mktemp -d)
 export TMPDIR="${ttmpdir}"
 OUTPUT="$(pwd)"
 export OUTPUT
 
+shred="rm -P"
+# replace shred with os-specific rm call if needed
+qtype shred && { shred="shred" ; }
+
 # clean out all files zeroizing first, then rm dirs
 clean_tmpdir () {
   cd / || exit 250
   if [ ! -z "${ttmpdir}" ] ; then
-    find "${ttmpdir}" -type f -exec rm -P {} \;
+    find "${ttmpdir}" -type f -exec $shred {} \;
     rm -rf "${ttmpdir}"
   fi
 }
@@ -76,10 +82,10 @@ qrencode_pages () {
     convert "${qrpg}" -background white ${convert_fntopts} \
      label:"$(fold -w${txtwidth} < "${file}") $(printf '\n\n%-'${spacect}'s%02d\n' '' ${pagen})" \
      -gravity center -append "leaf/$(printf '%02d' "${pagen}").png"
-    rm -P "${file}"
+    $shred "${file}"
   done
 
-  rm -P "${inputfile}"
+  $shred "${inputfile}"
 }
 
 rot () {
