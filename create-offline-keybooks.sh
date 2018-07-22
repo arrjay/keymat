@@ -49,19 +49,23 @@ clean_tmpdir () {
 }
 trap clean_tmpdir EXIT SIGINT SIGTERM
 
+# I want to get the current checkout data so run before cd
+key_mail="zero.$(git rev-parse --short HEAD).$(date +%s)@gpg.arrjay.net"
+
 # okay let's go drive gpg
 cd "${ttmpdir}" || exit 250
 
 mkdir .gnupg
 export GNUPGHOME="${ttmpdir}/.gnupg"
 
-"${gpg2}" --gen-key --batch --allow-freeform-uid << _EOF_ 2>/dev/null
+"${gpg2}" --gen-key --batch << _EOF_ 2>/dev/null
 %no-ask-passphrase
 %no-protection
 Key-Type: rsa
 Key-Length: 2048
 Key-Usage: encrypt
-Name-Real: 0
+Name-Real: Store
+Name-Email: ${key_mail}
 Expire-Date: 0
 Preferences: SHA512 SHA384 SHA256 SHA224 AES256 AES192 AES CAST5 ZLIB BZIP2 ZIP Uncompressed
 _EOF_
@@ -143,19 +147,19 @@ makebook () {
 
   pushd "${t2}" >/dev/null || exit 250
 
-  "${gpg2}" --export-secret-key 0 | paperkey --output-type raw | "${base64}" -w0 > "sekrit"
-  "${gpg2}" --export 0                                         | "${base64}" -w0 > "public"
+  "${gpg2}" --export-secret-key "${key_mail}" | paperkey --output-type raw | "${base64}" -w0 > "sekrit"
+  "${gpg2}" --export "${key_mail}"                                         | "${base64}" -w0 > "public"
 
   mkdir -p "sec/leaf" "pub/leaf"
 
   # shellcheck disable=SC2086
-  convert -background white ${convert_fntopts} label:"$(gpg --keyid-format 0xLONG --list-keys --fingerprint 0)" "page01.png"
+  convert -background white ${convert_fntopts} label:"$("${gpg2}" --keyid-format 0xLONG --list-keys --fingerprint "${key_mail}" | sed 's/ = /\n/' | fold -s -w50)" "page01.png"
   cp "page01.png" "sec/leaf/01.png"
   cp "page01.png" "pub/leaf/01.png"
 
   pushd sec >/dev/null || exit 250
-  "${gpg2}" --export-secret-key 0 | paperkey --output-type raw | "${base64}" -w0 > "data"
-  mkpw                                                         | qrencode_pages "data"
+  "${gpg2}" --export-secret-key "${key_mail}" | paperkey --output-type raw | "${base64}" -w0 > "data"
+  mkpw                                                                     | qrencode_pages "data"
 
   layout_impositions
 
@@ -165,8 +169,8 @@ makebook () {
   popd > /dev/null || exit 250
 
   pushd pub > /dev/null || exit 250
-  "${gpg2}" --export 0                                         | "${base64}" -w0 > "data"
-  echo "https://github.com/arrjay/keymat"                      | qrencode_pages "data"
+  "${gpg2}" --export "${key_mail}"                                         | "${base64}" -w0 > "data"
+  echo "https://github.com/arrjay/keymat"                                  | qrencode_pages "data"
 
   layout_impositions
 
