@@ -15,6 +15,9 @@ qtype gpg2 && gpg2="gpg2"
 macgpg2="/usr/local/MacGPG2/bin/gpg2"
 [ -f "${macgpg2}" ] && gpg2="${macgpg2}"
 
+# hmm. see if gpg is gpg2.
+[ -z "${gpg2}" ] && { gpg --version | grep -q "gpg (GnuPG) 2" && gpg2="gpg" ; }
+
 qtype gbase64 && base64="gbase64"
 qtype gsplit  && split="gsplit"
 
