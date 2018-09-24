@@ -9,7 +9,7 @@ gpg2=""
 base64="base64"
 split="split"
 
-umask 022
+umask 077
 
 qtype () { type "${@}" > /dev/null 2>&1 ; }
 
@@ -95,7 +95,6 @@ qrencode_pages () {
     $shred "${file}"
   done
 
-  $shred "${inputfile}"
 }
 
 rot () {
@@ -169,6 +168,17 @@ makebook () {
 
   layout_impositions
 
+  # validate qrencode worked
+  zbarimg ss.pdf |sed -e '/^$/d' |sort > "decoded.qrc"
+  sed -e '/^QR-Code:16:.*/d' -e 's/^QR-Code:[[:digit:]][[:digit:]]://' decoded.qrc | tr -d '\n' > decoded.data
+  diff -q "data" "decoded.data"
+  echo "private-key data follows: item 16 is a password you may use"
+  sed -e 's/^QR-Code://' decoded.qrc
+
+  # now zap those files
+  $shred "data"
+  $shred "decoded.qrc"
+
   cp ss.pdf "${OUTPUT}/private-ss.pdf"
   cp ds.pdf "${OUTPUT}/private-ds.pdf"
 
@@ -179,6 +189,17 @@ makebook () {
   echo "https://github.com/arrjay/keymat"                                  | qrencode_pages "data"
 
   layout_impositions
+
+  # validate qrencode worked
+  zbarimg ss.pdf |sed -e '/^$/d' -e '/^QR-Code:16:.*/d' |sort > "decoded.qrc"
+  sed -e 's/^QR-Code:[[:digit:]][[:digit:]]://' decoded.qrc | tr -d '\n' > decoded.data
+  diff -q "data" "decoded.data"
+  echo "public key data"
+  sed -e 's/^QR-Code://' decoded.qrc
+
+  # now zap those files
+  $shred "data"
+  $shred "decoded.qrc"
 
   cp ss.pdf "${OUTPUT}/public-ss.pdf"
   cp ds.pdf "${OUTPUT}/public-ds.pdf"
