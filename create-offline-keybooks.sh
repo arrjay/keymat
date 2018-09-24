@@ -69,7 +69,7 @@ export GNUPGHOME="${ttmpdir}/.gnupg"
 %no-protection
 Key-Type: rsa
 Key-Length: 2048
-Key-Usage: encrypt
+Key-Usage: encrypt sign
 Name-Real: Store
 Name-Email: ${key_mail}
 Expire-Date: 0
