@@ -21,15 +21,8 @@ macgpg2="/usr/local/MacGPG2/bin/gpg2"
 # hmm. see if gpg is gpg2.
 [ -z "${gpg2}" ] && { gpg --version | grep -q "gpg (GnuPG) 2" && gpg2="gpg" ; }
 
-asciify() {
-  case "${1:-}" in
-    z85) z85 -e | tr -d '\n' ;;
-    *)   base64 | tr -d '\n' ;;
-  esac
-}
-
-enctype="base64"
-[ "${1:-}" == "z85" ] && enctype="z85"
+qtype gbase64 && base64="gbase64"
+qtype gsplit  && split="gsplit"
 
 qtype convert  || { echo "install ImageMagick" 1>&2 ; exit 1; }
 qtype paperkey || { echo "install paperkey" 1>&2 ; exit 1; }
@@ -160,6 +153,9 @@ makebook () {
 
   pushd "${t2}" >/dev/null || exit 250
 
+  "${gpg2}" --export-secret-key "${key_mail}" | paperkey --output-type raw | "${base64}" -w0 > "sekrit"
+  "${gpg2}" --export "${key_mail}"                                         | "${base64}" -w0 > "public"
+
   mkdir -p "sec/leaf" "pub/leaf"
 
   # shellcheck disable=SC2086
@@ -168,7 +164,7 @@ makebook () {
   cp "page01.png" "pub/leaf/01.png"
 
   pushd sec >/dev/null || exit 250
-  "${gpg2}" --export-secret-key "${key_mail}" | paperkey --output-type raw | asciify "${enctype}" > "data"
+  "${gpg2}" --export-secret-key "${key_mail}" | paperkey --output-type raw | "${base64}" -w0 > "data"
   mkpw                                                                     | qrencode_pages "data"
 
   layout_impositions
@@ -179,7 +175,7 @@ makebook () {
   popd > /dev/null || exit 250
 
   pushd pub > /dev/null || exit 250
-  "${gpg2}" --export "${key_mail}"                                         | asciify "${enctype}" > "data"
+  "${gpg2}" --export "${key_mail}"                                         | "${base64}" -w0 > "data"
   echo "https://github.com/arrjay/keymat"                                  | qrencode_pages "data"
 
   layout_impositions
