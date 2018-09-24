@@ -9,6 +9,8 @@ gpg2=""
 base64="base64"
 split="split"
 
+umask 022
+
 qtype () { type "${@}" > /dev/null 2>&1 ; }
 
 qtype gsplit  && split="gsplit"
