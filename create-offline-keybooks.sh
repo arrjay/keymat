@@ -9,10 +9,9 @@ gpg2=""
 base64="base64"
 split="split"
 
-qtype gsplit  && split="gsplit"
-
 qtype () { type "${@}" > /dev/null 2>&1 ; }
 
+qtype gsplit  && split="gsplit"
 qtype gpg2 && gpg2="gpg2"
 macgpg2="/usr/local/MacGPG2/bin/gpg2"
 [ -f "${macgpg2}" ] && gpg2="${macgpg2}"
