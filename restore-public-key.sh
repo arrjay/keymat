@@ -11,7 +11,7 @@ read -n 1 -s -r -p "Press any key to start reading clipboard"
 ./termux-read-data.sh | base64 -d > pubkey.gpg
   ;;
   *)
-./zbarimg-read-data.sh public-ss.pdf | base64 -D > pubkey.gpg
+./zbarimg-read-data.sh public-ss.pdf | base64 -d > pubkey.gpg
   ;;
 esac
 gpg --import pubkey.gpg

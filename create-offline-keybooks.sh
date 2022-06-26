@@ -63,17 +63,25 @@ cd "${ttmpdir}" || exit 250
 
 mkdir .gnupg
 export GNUPGHOME="${ttmpdir}/.gnupg"
+{
+  printf '%s\n' 'allow-loopback-pinentry'
+} > "${GNUPGHOME}/gpg-agent.conf"
 
-"${gpg2}" --gen-key --batch << _EOF_ 2>/dev/null
-%no-ask-passphrase
-%no-protection
-Key-Type: rsa
-Key-Length: 2048
-Key-Usage: encrypt sign
+gpgpass=$(mkpw)
+
+"${gpg2}" --gen-key --batch << _EOF_
+Key-Type: eddsa
+Key-Curve: Ed25519
+Key-Usage: sign
+Subkey-type: ecdh
+Subkey-Curve: Curve25519
+Subkey-Usage: encrypt
 Name-Real: Store
 Name-Email: ${key_mail}
 Expire-Date: 0
 Preferences: SHA512 SHA384 SHA256 SHA224 AES256 AES192 AES CAST5 ZLIB BZIP2 ZIP Uncompressed
+Passphrase: ${gpgpass}
+%commit
 _EOF_
 
 qrencode_pages () {
@@ -152,8 +160,8 @@ makebook () {
 
   pushd "${t2}" >/dev/null || exit 250
 
-  "${gpg2}" --export-secret-key "${key_mail}" | paperkey --output-type raw | "${base64}" -w0 > "sekrit"
-  "${gpg2}" --export "${key_mail}"                                         | "${base64}" -w0 > "public"
+  "${gpg2}" --batch --passphrase-fd 0 --pinentry-mode loopback --export-secret-key "${key_mail}" <<<"${gpgpass}" | paperkey --output-type raw | "${base64}" -w0 > "sekrit"
+  "${gpg2}" --export "${key_mail}"                                                                               | "${base64}" -w0 > "public"
 
   mkdir -p "sec/leaf" "pub/leaf"
 
@@ -163,8 +171,8 @@ makebook () {
   cp "page01.png" "pub/leaf/01.png"
 
   pushd sec >/dev/null || exit 250
-  "${gpg2}" --export-secret-key "${key_mail}" | paperkey --output-type raw | "${base64}" -w0 > "data"
-  mkpw                                                                     | qrencode_pages "data"
+  "${gpg2}" --batch --passphrase-fd 0 --pinentry-mode loopback --export-secret-key "${key_mail}" <<<"${gpgpass}" | paperkey --output-type raw | "${base64}" -w0 > "data"
+  echo "${gpgpass}"                                                                                              | qrencode_pages "data"
 
   layout_impositions
 
@@ -172,7 +180,7 @@ makebook () {
   zbarimg ss.pdf |sed -e '/^$/d' |sort > "decoded.qrc"
   sed -e '/^QR-Code:16:.*/d' -e 's/^QR-Code:[[:digit:]][[:digit:]]://' decoded.qrc | tr -d '\n' > decoded.data
   diff -q "data" "decoded.data"
-  echo "private-key data follows: item 16 is a password you may use"
+  echo "private-key data follows: item 16 is the key's password"
   sed -e 's/^QR-Code://' decoded.qrc
 
   # now zap those files

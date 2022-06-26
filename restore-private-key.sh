@@ -11,7 +11,7 @@ read -n 1 -s -r -p "Press any key to start reading clipboard"
 ./termux-read-data.sh | base64 -d > paperkey.secret
   ;;
   *)
-./zbarimg-read-data.sh private-ss.pdf | base64 -D > paperkey.secret
+./zbarimg-read-data.sh private-ss.pdf | base64 -d > paperkey.secret
   ;;
 esac
 
